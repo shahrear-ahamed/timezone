@@ -3,8 +3,8 @@ import { ChartLine, Clock3, Plus, RefreshCcw } from "lucide-react";
 import { useState } from "react";
 import TimezoneForm from "./components/features/TimezoneForm";
 import TimezoneTable from "./components/features/TimezoneTable";
-import Modal from "./components/ui/Modal";
 import WeeklyViewModal from "./components/features/WeeklyViewModal";
+import Modal from "./components/ui/Modal";
 
 const queryClient = new QueryClient();
 
