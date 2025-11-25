@@ -1,215 +1,118 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { AlertCircle, Loader2, MapPin } from "lucide-react";
+import { useState } from "react";
 
-const formatCoordinate = (value) =>
-  typeof value === "number" ? value.toFixed(4) : "—";
-
-const reverseGeocode = async (latitude, longitude) => {
-  const params = new URLSearchParams({
-    latitude,
-    longitude,
-    localityLanguage: "en",
-  });
-
-  const response = await fetch(
-    `https://api.bigdatacloud.net/data/reverse-geocode-client?${params.toString()}`
-  );
-
-  if (!response.ok) {
-    throw new Error("Reverse geocoding failed");
-  }
-
-  const data = await response.json();
-
-  return {
-    city:
-      data.city || data.locality || data.principalSubdivision || "Unknown city",
-    country: data.countryName || "Unknown country",
-  };
-};
-
-function LocationDetector() {
-  const [status, setStatus] = useState("idle");
-  const [coords, setCoords] = useState(null);
+export default function LocationDetector() {
+  const [location, setLocation] = useState(null);
   const [address, setAddress] = useState(null);
-  const [errorMessage, setErrorMessage] = useState("");
-  const attemptsRef = useRef(0);
-  const retryTimeoutRef = useRef(null);
-  const requestLocationRef = useRef(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const clearPendingRetry = () => {
-    if (retryTimeoutRef.current) {
-      clearTimeout(retryTimeoutRef.current);
-      retryTimeoutRef.current = null;
-    }
-  };
+  const detectLocation = () => {
+    setLoading(true);
+    setError(null);
+    setAddress(null);
 
-  const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      setStatus("error");
-      setErrorMessage("Geolocation is not supported in this browser.");
+      setError("Geolocation is not supported by your browser");
+      setLoading(false);
       return;
     }
 
-    attemptsRef.current += 1;
-    setStatus("locating");
-    setErrorMessage("");
-    setAddress(null);
-
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        attemptsRef.current = 0;
-        clearPendingRetry();
+      async (position) => {
         const { latitude, longitude } = position.coords;
-        setCoords({ latitude, longitude });
-        setStatus("resolving");
-      },
-      (geoError) => {
-        if (geoError.code === geoError.PERMISSION_DENIED) {
-          attemptsRef.current = 0;
-          clearPendingRetry();
-          setErrorMessage("Location permission denied.");
-          setStatus("denied");
-          return;
+        setLocation({ latitude, longitude });
+
+        // Fetch address using reverse geocoding
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          );
+          const data = await response.json();
+          setAddress(data.display_name);
+        } catch (err) {
+          console.error("Error fetching address:", err);
         }
 
-        const autoRetryLimit = 3;
-        const friendlyMessage =
-          geoError.code === geoError.POSITION_UNAVAILABLE
-            ? "We could not determine your position. Please ensure location services are enabled and try again."
-            : "Unable to retrieve your location. Please try again.";
-
-        if (attemptsRef.current < autoRetryLimit) {
-          setStatus("retrying");
-          setErrorMessage(`${friendlyMessage} Retrying...`);
-          retryTimeoutRef.current = setTimeout(() => {
-            retryTimeoutRef.current = null;
-            requestLocationRef.current();
-          }, 2000);
-          return;
-        }
-
-        setStatus("error");
-        setErrorMessage(friendlyMessage);
+        setLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      (err) => {
+        setError(err.message);
+        setLoading(false);
+      }
     );
-  }, []);
-
-  useEffect(() => {
-    requestLocationRef.current();
-
-    return () => {
-      clearPendingRetry();
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const runReverseGeocoding = async () => {
-      if (!coords || status !== "resolving") {
-        return;
-      }
-
-      try {
-        const result = await reverseGeocode(coords.latitude, coords.longitude);
-        if (cancelled) {
-          return;
-        }
-
-        setAddress(result);
-        setStatus("success");
-      } catch (error) {
-        console.log(error);
-        if (cancelled) {
-          return;
-        }
-
-        setStatus("partial");
-        setErrorMessage(
-          "Coordinates detected, but we could not resolve the address."
-        );
-      }
-    };
-
-    runReverseGeocoding();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [coords, status]);
-
-  const isLoading =
-    status === "locating" || status === "resolving" || status === "retrying";
+  };
 
   return (
-    <div className="p-6 space-y-4 bg-white rounded-lg shadow">
-      <div className="flex justify-between items-center">
-        <div>
-          <p className="text-sm text-gray-500">Current location</p>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Browser Geolocation
-          </h2>
+    <div className="flex justify-center items-center p-4 min-h-screen from-blue-50 to-indigo-100 bg-linear-to-br">
+      <div className="p-8 w-full max-w-md bg-white rounded-2xl shadow-xl">
+        <div className="mb-6 text-center">
+          <div className="inline-flex justify-center items-center mb-4 w-16 h-16 bg-indigo-100 rounded-full">
+            <MapPin className="w-8 h-8 text-indigo-600" />
+          </div>
+          <h1 className="mb-2 text-2xl font-bold text-gray-800">
+            Location Detector
+          </h1>
+          <p className="text-gray-600">Detect your current browser location</p>
         </div>
+
         <button
-          onClick={requestLocation}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md transition-colors hover:bg-blue-700 disabled:opacity-60"
-          disabled={isLoading}
+          onClick={detectLocation}
+          disabled={loading}
+          className="flex gap-2 justify-center items-center px-6 py-3 w-full font-semibold text-white bg-indigo-600 rounded-lg transition-colors duration-200 hover:bg-indigo-700 disabled:bg-indigo-400"
         >
-          {isLoading ? "Detecting..." : "Detect Again"}
+          {loading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Detecting...
+            </>
+          ) : (
+            <>
+              <MapPin className="w-5 h-5" />
+              Detect My Location
+            </>
+          )}
         </button>
+
+        {error && (
+          <div className="flex gap-3 items-start p-4 mt-6 bg-red-50 rounded-lg border border-red-200">
+            <AlertCircle className="mt-0.5 w-5 h-5 text-red-600 shrink-0" />
+            <div>
+              <p className="font-semibold text-red-800">Error</p>
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {location && (
+          <div className="mt-6 space-y-4">
+            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+              <h3 className="mb-2 font-semibold text-green-800">Coordinates</h3>
+              <div className="space-y-1 text-sm">
+                <p className="text-green-700">
+                  <span className="font-medium">Latitude:</span>{" "}
+                  {location.latitude.toFixed(6)}
+                </p>
+                <p className="text-green-700">
+                  <span className="font-medium">Longitude:</span>{" "}
+                  {location.longitude.toFixed(6)}
+                </p>
+              </div>
+            </div>
+
+            {address && (
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h3 className="mb-2 font-semibold text-blue-800">Address</h3>
+                <p className="text-sm text-blue-700">{address}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-6 text-xs text-center text-gray-500">
+          Your browser will ask for permission to access your location
+        </div>
       </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="p-4 bg-gray-50 rounded-md border">
-          <p className="mb-1 text-xs tracking-wide text-gray-500 uppercase">
-            Latitude
-          </p>
-          <p className="font-mono text-lg text-gray-900">
-            {formatCoordinate(coords?.latitude)}
-          </p>
-        </div>
-        <div className="p-4 bg-gray-50 rounded-md border">
-          <p className="mb-1 text-xs tracking-wide text-gray-500 uppercase">
-            Longitude
-          </p>
-          <p className="font-mono text-lg text-gray-900">
-            {formatCoordinate(coords?.longitude)}
-          </p>
-        </div>
-      </div>
-
-      {address && (
-        <div className="p-4 text-green-900 bg-green-50 rounded-md border">
-          <p className="text-sm font-semibold">{address.city}</p>
-          <p className="text-sm">{address.country}</p>
-        </div>
-      )}
-
-      {!address && status === "locating" && (
-        <p className="text-sm text-gray-500">
-          Waiting for location permission...
-        </p>
-      )}
-
-      {status === "denied" && (
-        <p className="text-sm font-medium text-red-600">
-          Location permission denied.
-        </p>
-      )}
-
-      {status === "error" && (
-        <p className="text-sm text-red-600">
-          {errorMessage ||
-            "Something went wrong while detecting your location."}
-        </p>
-      )}
-
-      {status === "partial" && (
-        <p className="text-sm text-yellow-700">{errorMessage}</p>
-      )}
     </div>
   );
 }
-
-export default LocationDetector;

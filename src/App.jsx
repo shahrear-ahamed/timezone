@@ -1,10 +1,9 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import TimezoneTable from './components/features/TimezoneTable';
-import { useState } from 'react';
-import Modal from './components/ui/Modal';
-import TimezoneForm from './components/features/TimezoneForm';
-import { Plus } from 'lucide-react';
-import LocationDetector from './components/features/LocationDetector';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
+import { useState } from "react";
+import TimezoneForm from "./components/features/TimezoneForm";
+import TimezoneTable from "./components/features/TimezoneTable";
+import Modal from "./components/ui/Modal";
 
 const queryClient = new QueryClient();
 
@@ -13,26 +12,30 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-5xl mx-auto space-y-6">
+      <div className="p-8 min-h-screen bg-gray-50">
+        <div className="mx-auto space-y-6 max-w-5xl">
           <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-gray-900">Timezone Management</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Timezone Management
+            </h1>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center px-4 py-2 text-white bg-blue-600 rounded-md transition-colors hover:bg-blue-700"
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="mr-2 w-4 h-4" />
               Add Timezone
             </button>
           </div>
 
-          <LocationDetector />
-
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="p-6 bg-white rounded-lg shadow">
             <TimezoneTable />
           </div>
 
-          <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Timezone">
+          <Modal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            title="Add New Timezone"
+          >
             <TimezoneForm onSuccess={() => setIsModalOpen(false)} />
           </Modal>
         </div>
