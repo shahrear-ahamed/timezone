@@ -38,7 +38,7 @@ const TimezoneForm = ({ onSuccess }) => {
   } = useForm({
     defaultValues: {
       title: "",
-      username: "",
+      userName: "",
       userTime: "",
       timezone: "",
     },
@@ -56,7 +56,7 @@ const TimezoneForm = ({ onSuccess }) => {
     createTimezoneMutation.mutate(
       {
         title: data.title.trim(),
-        username: data.username.trim(),
+        userName: data.userName.trim(),
         userTime: data.userTime.trim(),
         timezone: data.timezone.trim() || timezoneInfo.label || timezoneInfo.id,
       },
@@ -65,7 +65,7 @@ const TimezoneForm = ({ onSuccess }) => {
           setTimezoneInfo(detectTimezone());
           reset({
             title: "",
-            username: "",
+            userName: "",
             userTime: "",
             timezone: timezoneInfo.label || timezoneInfo.id || "",
           });
@@ -98,20 +98,20 @@ const TimezoneForm = ({ onSuccess }) => {
 
       <div className="space-y-2">
         <label
-          htmlFor="username"
+          htmlFor="userName"
           className="text-sm font-semibold text-slate-700 dark:text-slate-100"
         >
           Teammate name
         </label>
         <input
-          id="username"
+          id="userName"
           type="text"
-          {...register("username", { required: "Please enter a name" })}
+          {...register("userName", { required: "Please enter a name" })}
           className="px-4 py-3 w-full text-sm bg-white rounded-2xl border shadow-sm border-slate-200 text-slate-900 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
           placeholder="e.g., Aisha Rahman"
         />
-        {errors.username && (
-          <p className="text-sm text-red-500">{errors.username.message}</p>
+        {errors.userName && (
+          <p className="text-sm text-red-500">{errors.userName.message}</p>
         )}
       </div>
 
