@@ -13,3 +13,8 @@ export const createTimezone = async (timezoneData) => {
   const response = await api.post('/timezone', timezoneData);
   return response.data.data;
 };
+
+export const fetchDailySubmissions = async () => {
+  const response = await api.get('/timezone/chart');
+  return response.data.data;
+};
