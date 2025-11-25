@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useTimezones } from "../../hooks/useTimezones";
 
 // Format date with date and time
@@ -47,10 +47,42 @@ const truncate = (text, maxLength) => {
 };
 
 const TimezoneTable = () => {
-  const { data: timezones, isLoading, isError, error } = useTimezones();
+  const {
+    data: timezones,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useTimezones();
+  const [progress, setProgress] = useState(0);
 
   // Get viewer's current timezone offset
   const viewerOffset = -new Date().getTimezoneOffset();
+
+  // Auto-refetch every 60 seconds with progress animation
+  useEffect(() => {
+    const REFETCH_INTERVAL = 60000; // 60 seconds
+    const ANIMATION_FRAME = 50; // Update every 50ms for smooth animation
+    const totalFrames = REFETCH_INTERVAL / ANIMATION_FRAME;
+
+    let frameCount = 0;
+
+    // Progress animation interval
+    const progressInterval = setInterval(() => {
+      frameCount++;
+      const newProgress = (frameCount / totalFrames) * 100;
+      setProgress(newProgress);
+
+      // Refetch when progress reaches 100%
+      if (frameCount >= totalFrames) {
+        refetch();
+        frameCount = 0;
+        setProgress(0);
+      }
+    }, ANIMATION_FRAME);
+
+    return () => clearInterval(progressInterval);
+  }, [refetch]);
 
   if (isLoading)
     return (
@@ -74,8 +106,22 @@ const TimezoneTable = () => {
     );
 
   return (
-    <div className="overflow-x-auto rounded-2xl border ring-1 shadow-xl border-white/10 bg-white/80 ring-black/5 dark:bg-slate-900/60">
-      <table className="min-w-full text-sm text-left text-slate-600 dark:text-slate-200">
+    <div className="overflow-x-auto relative rounded-2xl ring-1 shadow-xl bg-white/80 ring-black/5 dark:bg-slate-900/60">
+      {/* Animated border overlay */}
+      <div
+        className="absolute inset-0 rounded-2xl pointer-events-none"
+        style={{
+          background: `
+            linear-gradient(to right, #10b981 ${progress}%, transparent ${progress}%) top / 100% 2px no-repeat,
+            linear-gradient(to bottom, #10b981 ${progress}%, transparent ${progress}%) right / 2px 100% no-repeat,
+            linear-gradient(to left, #10b981 ${progress}%, transparent ${progress}%) bottom / 100% 2px no-repeat,
+            linear-gradient(to top, #10b981 ${progress}%, transparent ${progress}%) left / 2px 100% no-repeat
+          `,
+          border: "2px solid rgb(226 232 240 / 0.5)",
+        }}
+      />
+
+      <table className="relative min-w-full text-sm text-left text-slate-600 dark:text-slate-200">
         <thead className="bg-slate-50/80 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:bg-slate-900/40 dark:text-slate-400">
           <tr>
             <th className="px-4 py-4 whitespace-nowrap">Name</th>
