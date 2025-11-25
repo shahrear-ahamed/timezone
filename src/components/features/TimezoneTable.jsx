@@ -52,6 +52,7 @@ const TimezoneTable = () => {
             <th className="px-6 py-4">Title</th>
             <th className="px-6 py-4">Teammate</th>
             <th className="px-6 py-4">Current time</th>
+            <th className="px-6 py-4">Timezone</th>
             <th className="px-6 py-4">Uploaded</th>
           </tr>
         </thead>
@@ -59,10 +60,9 @@ const TimezoneTable = () => {
           {timezones.map((entry) => {
             const title = entry.title || "Untitled snapshot";
             const username = entry.username || "Unknown teammate";
-            const currentTime = resolveDisplayTime(
-              entry.currentTime || entry.uploadTime
-            );
+            const userTime = resolveDisplayTime(entry?.userTime);
             const uploadTime = resolveDisplayTime(entry.uploadTime);
+            const timezone = entry.timezone || entry.timezoneLabel || "—";
 
             return (
               <tr
@@ -79,7 +79,10 @@ const TimezoneTable = () => {
                   {username}
                 </td>
                 <td className="px-6 py-4 font-mono text-sm text-slate-800 dark:text-slate-100">
-                  {currentTime}
+                  {userTime}
+                </td>
+                <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-200">
+                  {timezone}
                 </td>
                 <td className="px-6 py-4 font-mono text-sm text-slate-500 dark:text-slate-300">
                   {uploadTime}

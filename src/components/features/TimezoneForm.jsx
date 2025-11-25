@@ -1,33 +1,74 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useCreateTimezone } from "../../hooks/useTimezones";
 
 const TimezoneForm = ({ onSuccess }) => {
+  const detectTimezone = useMemo(() => {
+    return () => {
+      try {
+        const tzId = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+        if (!tzId) return { id: "", label: "" };
+
+        const timeZoneParts = new Intl.DateTimeFormat("en-US", {
+          timeZone: tzId,
+          timeZoneName: "longGeneric",
+        })
+          .formatToParts(new Date())
+          .find((part) => part.type === "timeZoneName");
+
+        const label = timeZoneParts?.value
+          ? `${timeZoneParts.value} (${tzId})`
+          : tzId;
+
+        return { id: tzId, label };
+      } catch (error) {
+        console.error("Failed to detect timezone:", error);
+        return { id: "", label: "" };
+      }
+    };
+  }, []);
+
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
+    setValue,
   } = useForm({
     defaultValues: {
       title: "",
       username: "",
-      currentTime: "",
+      userTime: "",
+      timezone: "",
     },
   });
+
+  const [timezoneInfo, setTimezoneInfo] = useState(() => detectTimezone());
+
+  useEffect(() => {
+    setValue("timezone", timezoneInfo.label || timezoneInfo.id || "");
+  }, [timezoneInfo, setValue]);
 
   const createTimezoneMutation = useCreateTimezone();
 
   const onSubmit = (data) => {
+    console.log(data);
     createTimezoneMutation.mutate(
       {
         title: data.title.trim(),
         username: data.username.trim(),
-        currentTime: data.currentTime.trim(),
+        userTime: data.userTime.trim(),
+        timezone: data.timezone.trim() || timezoneInfo.label || timezoneInfo.id,
       },
       {
         onSuccess: () => {
-          reset({ title: "", username: "", currentTime: "" });
+          setTimezoneInfo(detectTimezone());
+          reset({
+            title: "",
+            username: "",
+            userTime: "",
+            timezone: timezoneInfo.label || timezoneInfo.id || "",
+          });
           onSuccess?.();
         },
       }
@@ -76,15 +117,15 @@ const TimezoneForm = ({ onSuccess }) => {
 
       <div className="space-y-2">
         <label
-          htmlFor="currentTime"
+          htmlFor="userTime"
           className="text-sm font-semibold text-slate-700 dark:text-slate-100"
         >
           Current time (e.g., 01:30 PM)
         </label>
         <input
-          id="currentTime"
+          id="userTime"
           type="text"
-          {...register("currentTime", {
+          {...register("userTime", {
             required: "Provide the teammate’s current time",
             minLength: {
               value: 4,
@@ -98,9 +139,37 @@ const TimezoneForm = ({ onSuccess }) => {
           Use any readable format. Examples: 09:15 AM, 18:45 CET,
           2025-11-25T09:00.
         </p>
-        {errors.currentTime && (
-          <p className="text-sm text-red-500">{errors.currentTime.message}</p>
+        {errors.userTime && (
+          <p className="text-sm text-red-500">{errors.userTime.message}</p>
         )}
+      </div>
+
+      <div className="p-4 space-y-2 text-sm rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-100">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              Browser timezone
+            </p>
+            <p className="font-medium text-slate-900 dark:text-white">
+              {timezoneInfo.label || "Detecting…"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const next = detectTimezone();
+              setTimezoneInfo(next);
+            }}
+            className="inline-flex justify-center items-center px-4 py-2 text-xs font-semibold rounded-xl border transition border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800"
+          >
+            Refresh timezone
+          </button>
+        </div>
+        <input
+          type="hidden"
+          {...register("timezone")}
+          value={timezoneInfo.label || timezoneInfo.id}
+        />
       </div>
 
       <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
