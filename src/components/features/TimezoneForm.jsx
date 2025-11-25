@@ -8,7 +8,7 @@ const TimezoneForm = ({ onSuccess }) => {
     return () => {
       try {
         const tzId = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-        if (!tzId) return { id: "", label: "" };
+        if (!tzId) return { id: "", label: "", offset: 0 };
 
         const timeZoneParts = new Intl.DateTimeFormat("en-US", {
           timeZone: tzId,
@@ -21,10 +21,13 @@ const TimezoneForm = ({ onSuccess }) => {
           ? `${timeZoneParts.value} (${tzId})`
           : tzId;
 
-        return { id: tzId, label };
+        // Get UTC offset in minutes
+        const offset = -new Date().getTimezoneOffset();
+
+        return { id: tzId, label, offset };
       } catch (error) {
         console.error("Failed to detect timezone:", error);
-        return { id: "", label: "" };
+        return { id: "", label: "", offset: 0 };
       }
     };
   }, []);
@@ -53,12 +56,19 @@ const TimezoneForm = ({ onSuccess }) => {
   const createTimezoneMutation = useCreateTimezone();
 
   const onSubmit = (data) => {
+    const now = new Date();
+    const uploadTimeUTC = new Date(now.toISOString());
+    const uploadTime = new Date(now.toString());
+
     createTimezoneMutation.mutate(
       {
         title: data.title.trim(),
         userName: data.userName.trim(),
         userTime: data.userTime.trim(),
         timezone: data.timezone.trim() || timezoneInfo.label || timezoneInfo.id,
+        timezoneOffset: timezoneInfo.offset,
+        uploadTime: uploadTime.toISOString(),
+        uploadTimeUTC: uploadTimeUTC.toISOString(),
       },
       {
         onSuccess: () => {
@@ -127,7 +137,7 @@ const TimezoneForm = ({ onSuccess }) => {
             id="userTime"
             type="text"
             {...register("userTime", {
-              required: "Provide the teammate’s current time",
+              required: "Provide the teammate's current time",
               minLength: {
                 value: 4,
                 message: "Time string feels too short",
