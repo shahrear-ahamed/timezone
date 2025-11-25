@@ -1,53 +1,122 @@
-import React from 'react';
-import { useForm } from 'react-hook-form';
-import { useCreateTimezone } from '../../hooks/useTimezones';
+import React from "react";
+import { useForm } from "react-hook-form";
+import { useCreateTimezone } from "../../hooks/useTimezones";
 
 const TimezoneForm = ({ onSuccess }) => {
-  const { register, handleSubmit, formState: { errors }, reset } = useForm();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm({
+    defaultValues: {
+      title: "",
+      username: "",
+      currentTime: "",
+    },
+  });
+
   const createTimezoneMutation = useCreateTimezone();
 
   const onSubmit = (data) => {
-    createTimezoneMutation.mutate(data, {
-      onSuccess: () => {
-        reset();
-        onSuccess?.();
+    createTimezoneMutation.mutate(
+      {
+        title: data.title.trim(),
+        username: data.username.trim(),
+        currentTime: data.currentTime.trim(),
       },
-    });
+      {
+        onSuccess: () => {
+          reset({ title: "", username: "", currentTime: "" });
+          onSuccess?.();
+        },
+      }
+    );
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-          Timezone Title
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className="space-y-2">
+        <label
+          htmlFor="title"
+          className="text-sm font-semibold text-slate-700 dark:text-slate-100"
+        >
+          Timezone title
         </label>
         <input
           id="title"
           type="text"
-          {...register('title', { required: 'Title is required' })}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-          placeholder="e.g. America/New_York"
+          {...register("title", { required: "Give this entry a title" })}
+          className="px-4 py-3 w-full text-sm bg-white rounded-2xl border shadow-sm border-slate-200 text-slate-900 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+          placeholder="Product launch stand-up"
         />
         {errors.title && (
-          <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
+          <p className="text-sm text-red-500">{errors.title.message}</p>
         )}
       </div>
 
-      <div className="flex justify-end pt-4">
+      <div className="space-y-2">
+        <label
+          htmlFor="username"
+          className="text-sm font-semibold text-slate-700 dark:text-slate-100"
+        >
+          Teammate name
+        </label>
+        <input
+          id="username"
+          type="text"
+          {...register("username", { required: "Please enter a name" })}
+          className="px-4 py-3 w-full text-sm bg-white rounded-2xl border shadow-sm border-slate-200 text-slate-900 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+          placeholder="e.g., Aisha Rahman"
+        />
+        {errors.username && (
+          <p className="text-sm text-red-500">{errors.username.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <label
+          htmlFor="currentTime"
+          className="text-sm font-semibold text-slate-700 dark:text-slate-100"
+        >
+          Current time (e.g., 01:30 PM)
+        </label>
+        <input
+          id="currentTime"
+          type="text"
+          {...register("currentTime", {
+            required: "Provide the teammate’s current time",
+            minLength: {
+              value: 4,
+              message: "Time string feels too short",
+            },
+          })}
+          className="px-4 py-3 w-full text-sm bg-white rounded-2xl border shadow-sm border-slate-200 text-slate-900 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+          placeholder="01:30 PM"
+        />
+        <p className="text-xs text-slate-500">
+          Use any readable format. Examples: 09:15 AM, 18:45 CET,
+          2025-11-25T09:00.
+        </p>
+        {errors.currentTime && (
+          <p className="text-sm text-red-500">{errors.currentTime.message}</p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+        {createTimezoneMutation.isError && (
+          <p className="text-sm text-red-500">
+            Error: {createTimezoneMutation.error.message}
+          </p>
+        )}
         <button
           type="submit"
           disabled={createTimezoneMutation.isPending}
-          className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex justify-center items-center px-5 py-3 text-sm font-semibold text-white bg-violet-500 rounded-2xl shadow-lg transition shadow-violet-500/30 hover:bg-violet-400 disabled:cursor-not-allowed disabled:bg-violet-400"
         >
-          {createTimezoneMutation.isPending ? 'Creating...' : 'Create Timezone'}
+          {createTimezoneMutation.isPending ? "Posting…" : "Share snapshot"}
         </button>
       </div>
-      
-      {createTimezoneMutation.isError && (
-        <div className="text-red-600 text-sm mt-2">
-          Error creating timezone: {createTimezoneMutation.error.message}
-        </div>
-      )}
     </form>
   );
 };

@@ -1,103 +1,92 @@
-import React, { useMemo } from 'react';
-import {
-  useReactTable,
-  getCoreRowModel,
-  flexRender,
-} from '@tanstack/react-table';
-import { useTimezones } from '../../hooks/useTimezones';
+import React from "react";
+import { useTimezones } from "../../hooks/useTimezones";
+
+const resolveDisplayTime = (value) => {
+  if (!value) {
+    return "—";
+  }
+
+  const attempt = new Date(Number(value) || value);
+  if (Number.isNaN(attempt.getTime())) {
+    return value;
+  }
+
+  return attempt.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+};
 
 const TimezoneTable = () => {
   const { data: timezones, isLoading, isError, error } = useTimezones();
 
-  const columns = useMemo(
-    () => [
-      {
-        header: 'Title',
-        accessorKey: 'title',
-      },
-      {
-        header: 'Upload Time',
-        accessorKey: 'uploadTime',
-        cell: (info) => {
-            const val = info.getValue();
-            if (!val) return '-';
-            // Try to format if it's a valid date string/number
-            try {
-                return new Date(Number(val) || val).toLocaleString();
-            } catch (e) {
-                return val;
-            }
-        }
-      },
-    ],
-    []
-  );
-
-  const table = useReactTable({
-    data: timezones || [],
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
-
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="flex justify-center items-center py-10">
+        <div className="w-10 h-10 rounded-full border-b-2 border-violet-500 animate-spin" />
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="text-red-600 p-4 bg-red-50 rounded-md">
+      <div className="p-6 text-red-700 rounded-3xl border border-red-200 bg-red-50/80">
         Error loading timezones: {error.message}
       </div>
     );
   }
 
   if (!timezones || timezones.length === 0) {
-     return (
-        <div className="text-gray-500 text-center py-8">
-           No timezones found. Add one to get started.
-        </div>
-     )
+    return (
+      <div className="p-10 text-sm text-center rounded-3xl border border-dashed border-slate-300/60 bg-white/40 text-slate-500 dark:bg-slate-900/50 dark:text-slate-300">
+        No snapshots yet. Add one above to get started.
+      </div>
+    );
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-        <thead className="bg-gray-50 dark:bg-gray-800">
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <th
-                  key={header.id}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400"
-                >
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                </th>
-              ))}
-            </tr>
-          ))}
+    <div className="overflow-hidden rounded-2xl border ring-1 shadow-xl border-white/10 bg-white/80 ring-black/5 dark:bg-slate-900/60">
+      <table className="min-w-full text-sm text-left text-slate-600 dark:text-slate-200">
+        <thead className="bg-slate-50/80 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:bg-slate-900/40 dark:text-slate-400">
+          <tr>
+            <th className="px-6 py-4">Title</th>
+            <th className="px-6 py-4">Teammate</th>
+            <th className="px-6 py-4">Current time</th>
+            <th className="px-6 py-4">Uploaded</th>
+          </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
-          {table.getRowModel().rows.map((row) => (
-            <tr key={row.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-              {row.getVisibleCells().map((cell) => (
-                <td
-                  key={cell.id}
-                  className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100"
-                >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+        <tbody className="divide-y divide-slate-100/70 dark:divide-slate-800/60">
+          {timezones.map((entry) => {
+            const title = entry.title || "Untitled snapshot";
+            const username = entry.username || "Unknown teammate";
+            const currentTime = resolveDisplayTime(
+              entry.currentTime || entry.uploadTime
+            );
+            const uploadTime = resolveDisplayTime(entry.uploadTime);
+
+            return (
+              <tr
+                key={entry.id || `${title}-${username}-${uploadTime}`}
+                className="transition hover:bg-slate-50/80 dark:hover:bg-slate-900/40"
+              >
+                <td className="px-6 py-4 text-slate-900 dark:text-white">
+                  <p className="text-sm font-semibold">{title}</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                    Timeline snapshot
+                  </p>
                 </td>
-              ))}
-            </tr>
-          ))}
+                <td className="px-6 py-4 text-base font-medium text-slate-700 dark:text-slate-100">
+                  {username}
+                </td>
+                <td className="px-6 py-4 font-mono text-sm text-slate-800 dark:text-slate-100">
+                  {currentTime}
+                </td>
+                <td className="px-6 py-4 font-mono text-sm text-slate-500 dark:text-slate-300">
+                  {uploadTime}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
