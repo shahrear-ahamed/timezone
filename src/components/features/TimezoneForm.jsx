@@ -1,3 +1,4 @@
+import { Clock8 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useCreateTimezone } from "../../hooks/useTimezones";
@@ -52,7 +53,6 @@ const TimezoneForm = ({ onSuccess }) => {
   const createTimezoneMutation = useCreateTimezone();
 
   const onSubmit = (data) => {
-    console.log(data);
     createTimezoneMutation.mutate(
       {
         title: data.title.trim(),
@@ -122,22 +122,39 @@ const TimezoneForm = ({ onSuccess }) => {
         >
           Current time (e.g., 01:30 PM)
         </label>
-        <input
-          id="userTime"
-          type="text"
-          {...register("userTime", {
-            required: "Provide the teammate’s current time",
-            minLength: {
-              value: 4,
-              message: "Time string feels too short",
-            },
-          })}
-          className="px-4 py-3 w-full text-sm bg-white rounded-2xl border shadow-sm border-slate-200 text-slate-900 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-          placeholder="01:30 PM"
-        />
+        <div className="flex flex-row gap-1 items-stretch">
+          <input
+            id="userTime"
+            type="text"
+            {...register("userTime", {
+              required: "Provide the teammate’s current time",
+              minLength: {
+                value: 4,
+                message: "Time string feels too short",
+              },
+            })}
+            className="inline-block px-4 py-3 pr-12 w-full text-sm bg-white rounded-2xl border shadow-sm border-slate-200 text-slate-900 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+            placeholder="01:30 PM"
+          />
+          <div className="inline-block">
+            <button
+              type="button"
+              aria-label="Use current browser time"
+              onClick={() => {
+                const formatted = new Intl.DateTimeFormat("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                }).format(new Date());
+                setValue("userTime", formatted, { shouldValidate: true });
+              }}
+              className="inline-block px-3 h-full rounded-xl transition hover:cursor-pointer bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+            >
+              <Clock8 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
         <p className="text-xs text-slate-500">
-          Use any readable format. Examples: 09:15 AM, 18:45 CET,
-          2025-11-25T09:00.
+          Use any readable format. e.g., 09:15 AM or 18:45 CET
         </p>
         {errors.userTime && (
           <p className="text-sm text-red-500">{errors.userTime.message}</p>
@@ -160,7 +177,7 @@ const TimezoneForm = ({ onSuccess }) => {
               const next = detectTimezone();
               setTimezoneInfo(next);
             }}
-            className="inline-flex justify-center items-center px-4 py-2 text-xs font-semibold rounded-xl border transition border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800"
+            className="inline-flex justify-center items-center px-4 py-2 text-xs font-semibold rounded-xl border transition hover:cursor-pointer border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800"
           >
             Refresh timezone
           </button>
