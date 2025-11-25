@@ -1,6 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import { useTimezones } from "../../hooks/useTimezones";
-import AnimatedBorder from "../ui/AnimatedBorder";
 
 // Format date with date and time
 const formatDateTime = (date, timezone = undefined) => {
@@ -47,64 +46,125 @@ const truncate = (text, maxLength) => {
   return text.substring(0, maxLength) + "…";
 };
 
+// Extract IANA timezone from string like "GMT+6 (Asia/Dhaka)"
+function extractIanaTimezone(tzString) {
+  if (!tzString) return null;
+  const match = tzString.match(/\(([^)]+)\)/);
+  return match ? match[1] : null;
+}
+
+// Parse user's upload time and format it in their timezone
+function parseUserTime(uploadTime, userTimezone) {
+  try {
+    if (!uploadTime) return "—";
+    
+    const iana = extractIanaTimezone(userTimezone);
+    if (!iana) return "—";
+
+    const date = new Date(uploadTime);
+    if (isNaN(date.getTime())) return "—";
+
+    // Format the date in user's timezone
+    return date.toLocaleString(undefined, {
+      timeZone: iana,
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (error) {
+    console.error("Error parsing user time:", error);
+    return "—";
+  }
+}
+
 const TimezoneTable = () => {
   const {
     data: timezones,
     isLoading,
     isError,
     error,
-    refetch,
   } = useTimezones();
-  const [progress, setProgress] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const containerRef = useRef(null);
   const ITEMS_PER_PAGE = 10;
+  
+  // Column order state with localStorage persistence
+  const defaultColumns = [
+    { id: 'name', label: 'Name' },
+    { id: 'title', label: 'Title' },
+    { id: 'userTime', label: "User's Time" },
+    { id: 'userUploadedTime', label: 'User Uploaded Time' },
+    { id: 'uploadTime', label: 'Upload Time Our Zone' },
+    { id: 'timezone', label: 'User Timezone' },
+    { id: 'serverTime', label: 'Server Time (UTC)' },
+    { id: 'userUtcGap', label: 'User UTC Gap' },
+    { id: 'myGap', label: 'My Gap from User' },
+  ];
+  
+  const [columns, setColumns] = useState(() => {
+    const saved = localStorage.getItem("columnOrder");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return defaultColumns;
+      }
+    }
+    return defaultColumns;
+  });
+  
+  const [draggedColumn, setDraggedColumn] = useState(null);
 
   // Get viewer's current timezone offset
   const viewerOffset = -new Date().getTimezoneOffset();
 
-  // Measure container dimensions
-  useEffect(() => {
-    if (!containerRef.current) return;
 
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setDimensions({
-          width: entry.contentRect.width,
-          height: entry.contentRect.height,
-        });
-      }
-    });
 
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, []);
+  // Column drag handlers
+  const handleDragStart = (e, columnId) => {
+    console.log('Drag started:', columnId);
+    setDraggedColumn(columnId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
 
-  // Auto-refetch every 60 seconds with progress animation
-  useEffect(() => {
-    const REFETCH_INTERVAL = 60000; // 60 seconds
-    const ANIMATION_FRAME = 50; // Update every 50ms for smooth animation
-    const totalFrames = REFETCH_INTERVAL / ANIMATION_FRAME;
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
 
-    let frameCount = 0;
+  const handleDrop = (e, targetColumnId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('Drop triggered. Dragged:', draggedColumn, 'Target:', targetColumnId);
+    
+    if (!draggedColumn || draggedColumn === targetColumnId) {
+      console.log('Same column or no dragged column, skipping');
+      setDraggedColumn(null);
+      return;
+    }
 
-    // Progress animation interval
-    const progressInterval = setInterval(() => {
-      frameCount++;
-      const newProgress = (frameCount / totalFrames) * 100;
-      setProgress(newProgress);
+    const draggedIndex = columns.findIndex(col => col.id === draggedColumn);
+    const targetIndex = columns.findIndex(col => col.id === targetColumnId);
 
-      // Refetch when progress reaches 100%
-      if (frameCount >= totalFrames) {
-        refetch();
-        frameCount = 0;
-        setProgress(0);
-      }
-    }, ANIMATION_FRAME);
+    console.log('Indices - Dragged:', draggedIndex, 'Target:', targetIndex);
 
-    return () => clearInterval(progressInterval);
-  }, [refetch]);
+    const newColumns = [...columns];
+    const [removed] = newColumns.splice(draggedIndex, 1);
+    newColumns.splice(targetIndex, 0, removed);
+
+    console.log('New column order:', newColumns);
+    setColumns(newColumns);
+    localStorage.setItem('columnOrder', JSON.stringify(newColumns));
+    console.log('Column order saved to localStorage');
+    setDraggedColumn(null);
+  };
+
+  const handleDragEnd = () => {
+    console.log('Drag ended');
+    setDraggedColumn(null);
+  };
 
   if (isLoading)
     return (
@@ -141,88 +201,105 @@ const TimezoneTable = () => {
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
   };
 
+  // Render cell content based on column id
+  const renderCellContent = (columnId, entry) => {
+    const uploadDate = entry.uploadTime ? new Date(entry.uploadTime) : null;
+    const serverDate = entry.createdAt ? new Date(entry.createdAt) : null;
+    const uploadTimeFormatted = formatDateTime(uploadDate);
+    const serverTimeFormatted = formatDateTime(serverDate, "UTC");
+    const userUtcGap = formatOffset(entry.timezoneOffset);
+    const myGapFromUser = calculateTimeDifference(viewerOffset, entry.timezoneOffset);
+    const userUploadedTimeFormatted = parseUserTime(entry.uploadTime, entry.timezone);
+
+    switch (columnId) {
+      case 'name':
+        return <span className="text-slate-900 dark:text-white">{entry.userName || "N/A"}</span>;
+      case 'title':
+        return <span className="text-slate-900 dark:text-white" title={entry.title}>{truncate(entry.title, 20)}</span>;
+      case 'userTime':
+        return <span className="font-medium text-violet-600 dark:text-violet-400">{entry.userTime || "N/A"}</span>;
+      case 'userUploadedTime':
+        return <span className="font-mono">{userUploadedTimeFormatted}</span>;
+      case 'uploadTime':
+        return <span className="font-mono">{uploadTimeFormatted}</span>;
+      case 'timezone':
+        return entry.timezone || "N/A";
+      case 'serverTime':
+        return <span className="font-mono">{serverTimeFormatted}</span>;
+      case 'userUtcGap':
+        return <span className="font-mono font-semibold text-blue-600 dark:text-blue-400">{userUtcGap}</span>;
+      case 'myGap':
+        return <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">{myGapFromUser}</span>;
+      default:
+        return "—";
+    }
+  };
+
+  // Get cell className based on column id
+  const getCellClassName = (columnId) => {
+    const base = "px-4 py-4";
+    switch (columnId) {
+      case 'name':
+        return `${base} truncate min-w-[140px]`;
+      case 'title':
+        return `${base} truncate min-w-[180px]`;
+      case 'userTime':
+        return `${base} text-center whitespace-nowrap`;
+      case 'userUploadedTime':
+      case 'uploadTime':
+      case 'serverTime':
+        return `${base} whitespace-nowrap min-w-[160px]`;
+      case 'timezone':
+        return `${base} truncate min-w-[200px]`;
+      case 'userUtcGap':
+      case 'myGap':
+        return `${base} text-center whitespace-nowrap`;
+      default:
+        return base;
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
-      <div
-        ref={containerRef}
-        className="relative rounded-2xl ring-1 shadow-xl bg-white/80 ring-black/5 dark:bg-slate-900/60"
-      >
-        {/* Animated border overlay */}
-        <AnimatedBorder
-          progress={progress}
-          width={dimensions.width}
-          height={dimensions.height}
-        />
+      <div className="relative rounded-2xl ring-1 shadow-xl bg-white/80 ring-black/5 dark:bg-slate-900/60 border border-white/10">
 
         <div className="overflow-x-auto rounded-2xl">
           <table className="relative min-w-full text-sm text-left text-slate-600 dark:text-slate-200">
-          <thead className="bg-slate-50/80 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:bg-slate-900/40 dark:text-slate-400">
-            <tr>
-              <th className="px-4 py-4 whitespace-nowrap">Name</th>
-              <th className="px-4 py-4 whitespace-nowrap">Title</th>
-              <th className="px-4 py-4 whitespace-nowrap">User's Time</th>
-              <th className="px-4 py-4 whitespace-nowrap">Upload Time</th>
-              <th className="px-4 py-4 whitespace-nowrap">User Timezone</th>
-              <th className="px-4 py-4 whitespace-nowrap">Server Time (UTC)</th>
-              <th className="px-4 py-4 whitespace-nowrap">User UTC Gap</th>
-              <th className="px-4 py-4 whitespace-nowrap">My Gap from User</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100/70 dark:divide-slate-800/60">
-            {currentItems.map((entry) => {
-              const uploadDate = entry.uploadTime
-                ? new Date(entry.uploadTime)
-                : null;
-              const serverDate = entry.createdAt
-                ? new Date(entry.createdAt)
-                : null;
-
-              const uploadTimeFormatted = formatDateTime(uploadDate);
-              const serverTimeFormatted = formatDateTime(serverDate, "UTC");
-              const userUtcGap = formatOffset(entry.timezoneOffset);
-              const myGapFromUser = calculateTimeDifference(
-                viewerOffset,
-                entry.timezoneOffset
-              );
-
-              return (
+            <thead className="bg-slate-50/80 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:bg-slate-900/40 dark:text-slate-400">
+              <tr>
+                {columns.map((column) => (
+                  <th
+                    key={column.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, column.id)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, column.id)}
+                    onDragEnd={handleDragEnd}
+                    className={`px-4 py-4 whitespace-nowrap cursor-grab active:cursor-grabbing select-none transition-colors ${
+                      draggedColumn === column.id ? 'opacity-50 bg-violet-100 dark:bg-violet-900/30' : ''
+                    }`}
+                  >
+                    {column.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100/70 dark:divide-slate-800/60">
+              {currentItems.map((entry) => (
                 <tr
                   key={entry._id}
                   className="transition hover:bg-slate-50/80 dark:hover:bg-slate-900/40"
                 >
-                  <td className="px-4 py-4 truncate min-w-[140px] text-slate-900 dark:text-white">
-                    {entry.userName || "N/A"}
-                  </td>
-                  <td
-                    className="px-4 py-4 truncate min-w-[180px] text-slate-900 dark:text-white"
-                    title={entry.title}
-                  >
-                    {truncate(entry.title, 20)}
-                  </td>
-                  <td className="px-4 py-4 text-center font-medium text-violet-600 whitespace-nowrap dark:text-violet-400">
-                    {entry.userTime || "N/A"}
-                  </td>
-                  <td className="px-4 py-4 font-mono whitespace-nowrap min-w-[160px]">
-                    {uploadTimeFormatted}
-                  </td>
-                  <td className="px-4 py-4 truncate min-w-[200px]">
-                    {entry.timezone || "N/A"}
-                  </td>
-                  <td className="px-4 py-4 font-mono whitespace-nowrap min-w-[160px]">
-                    {serverTimeFormatted}
-                  </td>
-                  <td className="px-4 py-4 text-center font-mono font-semibold text-blue-600 whitespace-nowrap dark:text-blue-400">
-                    {userUtcGap}
-                  </td>
-                  <td className="px-4 py-4 text-center font-mono font-semibold text-emerald-600 whitespace-nowrap dark:text-emerald-400">
-                    {myGapFromUser}
-                  </td>
+                  {columns.map((column) => (
+                    <td key={column.id} className={getCellClassName(column.id)}>
+                      {renderCellContent(column.id, entry)}
+                    </td>
+                  ))}
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Pagination Controls */}

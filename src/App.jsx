@@ -58,24 +58,24 @@ function App() {
                   </span>
                 </h2>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setTableKey((key) => key + 1)}
-                  className="inline-flex gap-2 items-center px-4 py-2 text-xs font-semibold text-slate-300 bg-slate-800/50 rounded-xl border border-white/10 hover:bg-white/10 hover:text-white transition-all"
+                  className="inline-flex gap-2 items-center px-4 py-2 text-xs font-semibold text-slate-300 bg-slate-800/50 rounded-xl border border-white/10 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
                 >
                   <RefreshCcw className="w-3.5 h-3.5" />
                   Refresh
                 </button>
                 <button
                   onClick={() => setIsWeeklyViewOpen(true)}
-                  className="inline-flex gap-2 items-center px-4 py-2 text-xs font-semibold text-slate-300 bg-slate-800/50 rounded-xl border border-white/10 hover:bg-white/10 hover:text-white transition-all"
+                  className="inline-flex gap-2 items-center px-4 py-2 text-xs font-semibold text-slate-300 bg-slate-800/50 rounded-xl border border-white/10 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
                 >
                   <ChartLine className="w-3.5 h-3.5" />
                   Schedule
                 </button>
               </div>
             </div>
-            <div className="rounded-2xl border shadow-lg border-white/10">
+            <div className="rounded-2xl shadow-lg">
               <TimezoneTable key={tableKey} />
             </div>
           </section>
