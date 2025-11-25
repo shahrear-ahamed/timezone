@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Modal from './components/ui/Modal';
 import TimezoneForm from './components/features/TimezoneForm';
 import { Plus } from 'lucide-react';
+import LocationDetector from './components/features/LocationDetector';
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,8 @@ function App() {
               Add Timezone
             </button>
           </div>
+
+          <LocationDetector />
 
           <div className="bg-white rounded-lg shadow p-6">
             <TimezoneTable />
