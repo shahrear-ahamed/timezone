@@ -110,11 +110,11 @@ const TimezoneTable = () => {
                 key={entry._id}
                 className="transition hover:bg-slate-50/80 dark:hover:bg-slate-900/40"
               >
-                <td className="px-4 py-4 truncate max-w-[140px] text-slate-900 dark:text-white">
+                <td className="px-4 py-4 truncate min-w-[140px] text-slate-900 dark:text-white">
                   {entry.userName || "N/A"}
                 </td>
                 <td
-                  className="px-4 py-4 truncate max-w-[180px] text-slate-900 dark:text-white"
+                  className="px-4 py-4 truncate min-w-[180px] text-slate-900 dark:text-white"
                   title={entry.title}
                 >
                   {truncate(entry.title, 20)}
@@ -125,7 +125,7 @@ const TimezoneTable = () => {
                 <td className="px-4 py-4 font-mono whitespace-nowrap min-w-[160px]">
                   {uploadTimeFormatted}
                 </td>
-                <td className="px-4 py-4 truncate max-w-[200px]">
+                <td className="px-4 py-4 truncate min-w-[200px]">
                   {entry.timezone || "N/A"}
                 </td>
                 <td className="px-4 py-4 font-mono whitespace-nowrap min-w-[160px]">
