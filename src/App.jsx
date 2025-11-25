@@ -27,7 +27,7 @@ function App() {
             </button>
           </div>
 
-          <div className="p-6 bg-white rounded-lg shadow">
+          <div className="bg-white rounded-lg shadow">
             <TimezoneTable />
           </div>
 
