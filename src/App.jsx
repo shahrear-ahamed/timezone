@@ -21,7 +21,7 @@ function App() {
             <div className="flex flex-col gap-5 lg:gap-10 lg:flex-row lg:items-center lg:justify-between">
               <div className="space-y-3">
                 <p className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-violet-200">
-                  <Clock3 className="w-3.5 h-3.5" />
+                  <Clock3 className="w-3.5 h-3.5 animate-pulse duration-75 font-bold" />
                   Live Ops
                 </p>
                 <h1 className="text-3xl font-semibold text-white sm:text-4xl">
