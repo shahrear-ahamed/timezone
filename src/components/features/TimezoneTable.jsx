@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useTimezones } from "../../hooks/useTimezones";
+import AnimatedBorder from "../ui/AnimatedBorder";
 
 // Format date with date and time
 const formatDateTime = (date, timezone = undefined) => {
@@ -108,18 +109,7 @@ const TimezoneTable = () => {
   return (
     <div className="overflow-x-auto relative rounded-2xl ring-1 shadow-xl bg-white/80 ring-black/5 dark:bg-slate-900/60">
       {/* Animated border overlay */}
-      <div
-        className="absolute inset-0 rounded-2xl pointer-events-none"
-        style={{
-          background: `
-            linear-gradient(to right, #10b981 ${progress}%, transparent ${progress}%) top / 100% 2px no-repeat,
-            linear-gradient(to bottom, #10b981 ${progress}%, transparent ${progress}%) right / 2px 100% no-repeat,
-            linear-gradient(to left, #10b981 ${progress}%, transparent ${progress}%) bottom / 100% 2px no-repeat,
-            linear-gradient(to top, #10b981 ${progress}%, transparent ${progress}%) left / 2px 100% no-repeat
-          `,
-          border: "2px solid rgb(226 232 240 / 0.5)",
-        }}
-      />
+      <AnimatedBorder progress={progress} />
 
       <table className="relative min-w-full text-sm text-left text-slate-600 dark:text-slate-200">
         <thead className="bg-slate-50/80 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:bg-slate-900/40 dark:text-slate-400">
