@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ChartLine, Clock3, Plus, RefreshCcw } from "lucide-react";
+import { ChartLine, Clock3, Globe, Plus, RefreshCcw } from "lucide-react";
 import { useState } from "react";
 import TimezoneForm from "./components/features/TimezoneForm";
 import TimezoneTable from "./components/features/TimezoneTable";
@@ -8,10 +8,21 @@ import Modal from "./components/ui/Modal";
 
 const queryClient = new QueryClient();
 
+// Get user's browser timezone
+const getUserTimezone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch (error) {
+    console.warn("Unable to detect timezone:", error);
+    return "UTC";
+  }
+};
+
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isWeeklyViewOpen, setIsWeeklyViewOpen] = useState(false);
   const [tableKey, setTableKey] = useState(0);
+  const userTimezone = getUserTimezone();
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -58,7 +69,11 @@ function App() {
                   </span>
                 </h2>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-3 items-center">
+                <div className="inline-flex gap-2 items-center px-4 py-2 text-xs font-medium text-violet-300 bg-violet-500/10 rounded-xl border border-violet-500/20">
+                  <Globe className="w-3.5 h-3.5" />
+                  <span className="font-mono">{userTimezone}</span>
+                </div>
                 <button
                   onClick={() => setTableKey((key) => key + 1)}
                   className="inline-flex gap-2 items-center px-4 py-2 text-xs font-semibold text-slate-300 bg-slate-800/50 rounded-xl border border-white/10 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
